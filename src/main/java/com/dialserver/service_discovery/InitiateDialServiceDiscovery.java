@@ -41,18 +41,18 @@ public class InitiateDialServiceDiscovery extends Thread {
             this.mServerSocket = new ServerSocket(Constant.DIAL_LOCAL_PORT_SERVICE_DISCOVERY);
             while (isDialServiceDiscoveryRunning) {
 
-                if(mServerSocket ==null || mServerSocket.isClosed()){
+                if (mServerSocket == null || mServerSocket.isClosed()) {
                     isDialServiceDiscoveryRunning = false;
                     break;
                 }
                 //Thread.sleep(5000);
                 try {
                     socket = mServerSocket.accept();
-                    if(!socket.isClosed()) {
+                    if (!socket.isClosed()) {
                         socket.setKeepAlive(true);
                         socket.setTcpNoDelay(true);
                         startDialServiceDiscovery(socket);
-                    }else {
+                    } else {
                         Logger.e("InitiateDialServiceDiscovery socket is closed");
                     }
                 } catch (Exception e) {
@@ -110,6 +110,7 @@ public class InitiateDialServiceDiscovery extends Thread {
                 mDialService.sendMessageToUI("BufferedWriter output DSD:\n" + msg);
             }*/
 
+            Logger.e("receiveDeviceDescriptionRequest: "+msg);
             ////in.close();
             if (!TextUtils.isEmpty(msg) && msg.contains(Constant.DEVICE_DESC_REQUEST)) {
                 ////boolean isConnected = socket.isConnected();

@@ -4,6 +4,7 @@ import android.text.TextUtils;
 
 import com.dialserver.services.DialUDPService;
 import com.dialserver.utils.Constant;
+import com.orhanobut.logger.Logger;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -112,7 +113,7 @@ public class InitiateMulticastUDPConnection extends Thread {
      */
     private void onUDPMessageReceived(DatagramPacket packet, final String message) throws IOException {
 
-        //Logger.e(message);
+        ////Logger.e("onUDPMessageReceived: "+ message);
         ////mDialService.sendMessageToUI("onUDPMessageReceived:\n" + message);
         ////if (message.contains(Constant.M_SEARCH_REQUEST)) {
         if (message.contains(Constant.M_SEARCH_COMPARE_1) &&

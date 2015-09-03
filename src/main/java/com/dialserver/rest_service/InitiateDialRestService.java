@@ -4,10 +4,13 @@ import android.content.ActivityNotFoundException;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.net.Uri;
+import android.provider.Browser;
 import android.text.TextUtils;
+
 import com.orhanobut.logger.Logger;
 import com.dialserver.services.DialUDPService;
 import com.dialserver.utils.Constant;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -99,6 +102,24 @@ public class InitiateDialRestService extends Thread {
             }
         }
 
+        /***
+         * @param out
+         */
+        private void sendOtherOkResponse(BufferedWriter out, String msg) {
+            try {
+                String ok = Constant.HTTP_PROTOCOL + " 200 OK\r\n";
+
+                String screenId = msg.substring(msg.lastIndexOf("screenId"), msg.length());
+                Logger.e("screenId: " + screenId);
+
+                mDialService.sendTCPMessage(out, ok);
+                mDialService.sendMessageToUI("send Other Ok Response:\n" + ok);
+                Logger.e("sendOtherOkResponse: " + ok);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
         private void receiveRestServiceRequest(Socket socket) throws Exception {
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             BufferedWriter out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
@@ -111,11 +132,11 @@ public class InitiateDialRestService extends Thread {
                 mDialService.sendMessageToUI("BufferedWriter output DRS:\n" + msg);
                 }*/
 
-            if(!TextUtils.isEmpty(msg) && msg.contains("dial_data")){
-                String fullMsg = mDialService.readDataFromSocket(in);
-                Logger.e(msg+"\r\n"+fullMsg);
-            }
-            else if (!TextUtils.isEmpty(msg) && msg.contains(Constant.APP_INFO_REQUEST)) {
+            if (!TextUtils.isEmpty(msg) && msg.contains("dial_data")) {
+                ////String fullMsg = mDialService.readDataFromSocket(in);
+                ////Logger.e(msg + "\r\n" + fullMsg);
+                ////sendOtherOkResponse(out, fullMsg);
+            } else if (!TextUtils.isEmpty(msg) && msg.contains(Constant.APP_INFO_REQUEST)) {
                 //boolean isConnected = socket.isConnected();
 
                 final String message = msg + System.getProperty("line.separator");
@@ -140,13 +161,33 @@ public class InitiateDialRestService extends Thread {
                 String appName = message.replace(Constant.APP_LAUNCH_REQUEST, "");
                 appName = appName.substring(0, appName.indexOf(" "));
 
-                sendApplicationLaunchResponse(appName, out);
-                mDialService.sendMessageToUI("\nPlease wait while YouTube is Starting:\n" + message);
-
+                ////////mDialService.sendMessageToUI("\nPlease wait while YouTube is Starting:\n" + message);
                 msg = mDialService.readDataFromSocket(in);
                 Logger.e(msg);
                 launchBrowser(appName, msg);
+                sendApplicationLaunchResponse(appName, out);
             }
+        }
+    }
+
+    /***
+     * @param appName
+     */
+    private void launchBrowser(String appName) {
+        boolean isBrowserLaunched = false;
+        if (appName != null && appName.contains(Constant.APP_NAME_YOU_TUBE)) {
+
+            Uri uri = Uri.parse("https://www.youtube.com/tv");
+            Logger.e("uri: " + uri.toString());
+            mDialService.sendMessageToUI("URI: " + uri.toString());
+            Intent intent = new Intent(Intent.ACTION_VIEW, uri);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            mDialService.startActivity(intent);
+        } else {
+            Logger.e("launchBrowser AppName: " + appName);
+        }
+        if (isBrowserLaunched) {
+            mAppState = Constant.APP_STATE.running;
         }
     }
 
@@ -190,6 +231,14 @@ public class InitiateDialRestService extends Thread {
      */
     private void launchBrowser(String appName, String msg) {
         boolean isBrowserLaunched = false;
+        String additionParams = "rel=0&autoplay=1&cc_load_policy=1";
+        ///String additionParams = "";
+
+        //////////////////////////mDialService.getPackageManager().getLaunchIntentForPackage("com.package.myappweb");
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        intent.putExtra(Browser.EXTRA_APPLICATION_ID, mDialService.getPackageName());
+
         if (appName != null && appName.contains(Constant.APP_NAME_YOU_TUBE)) {
             String videoId = "";
             try {
@@ -201,18 +250,18 @@ public class InitiateDialRestService extends Thread {
             }
             if (!TextUtils.isEmpty(videoId)) {
 
-                Uri uri = Uri.parse("https://www.youtube.com/watch?v=" + videoId);
+                Uri uri = Uri.parse("https://www.youtube.com/watch?v=" + videoId + additionParams);
                 Logger.e("uri: " + uri.toString());
-                mDialService.sendMessageToUI("URI: " + uri.toString());
-                Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                //////mDialService.sendMessageToUI("URI: " + uri.toString());
+                intent.setData(uri);
                 mDialService.startActivity(intent);
                 isBrowserLaunched = true;
             } else {
                 String params = "";
                 try {
                     params = msg.substring(msg.lastIndexOf("pairingCode="), msg.length());
-                    params = params + "&additionalDataUrl=http://localhost:" + Constant.DIAL_LOCAL_PORT_REST_SERVICE + "/app/" + appName + "/dial_data";
+                    params = params + "&additionalDataUrl=http://" + mDialService.getLocalIpAddress() + ":" +
+                            Constant.DIAL_LOCAL_PORT_REST_SERVICE + "/app/" + appName + "/dial_data?";
 
                     Logger.e("params: " + params);
                 } catch (Exception e) {
@@ -220,11 +269,10 @@ public class InitiateDialRestService extends Thread {
                     e.printStackTrace();
                 }
                 if (!TextUtils.isEmpty(params)) {
-                    Uri uri = Uri.parse("https://www.youtube.com/tv?" + params);
+                    Uri uri = Uri.parse("https://www.youtube.com/tv?" + additionParams + "&" + params);
                     Logger.e("uri: " + uri.toString());
-                    mDialService.sendMessageToUI("URI: " + uri.toString());
-                    Intent intent = new Intent(Intent.ACTION_VIEW, uri);
-                    intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    ///////mDialService.sendMessageToUI("URI: " + uri.toString());
+                    intent.setData(uri);
                     mDialService.startActivity(intent);
                     isBrowserLaunched = true;
                 }

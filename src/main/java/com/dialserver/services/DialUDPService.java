@@ -88,24 +88,49 @@ public class DialUDPService extends BaseService {
     }
 
     /***
-     * @param in
+     * @param reader
      * @return
-     * @throws IOException
      */
-    public String readDataFromSocket(BufferedReader in) {
-        StringBuilder sb = new StringBuilder();
+    public String readDataFromSocket(BufferedReader reader) {
+        StringBuilder contents = new StringBuilder();
         try {
+            String lineSp = System.getProperty("line.separator");
             String line = null;
-            while ((line = in.readLine()) != null) {
-                sb.append(line).append('\n');
+            ////long timeB = System.currentTimeMillis();
+            while ((line = reader.readLine()) != null) {
+                contents.append(line).append(lineSp);
             }
+            /*long timef = System.currentTimeMillis();
+            Logger.e("TIME: " + (timef - timeB));
+            sendMessageToUI("TIME: " + (timef - timeB));*/
         } catch (Exception e) {
             e.printStackTrace();
             Logger.e(e.getMessage());
         }
-        ////////////////////in.close();
-        return sb.toString().trim();
+        return contents.toString().trim();
     }
+
+//    /***
+//     * @param reader
+//     * @return
+//     */
+//    public String readDataFromSocket(BufferedReader reader) {
+//        StringBuilder contents = new StringBuilder();
+//        try {
+//            int value = 0;
+//            long timeB = System.currentTimeMillis();
+//            // reads to the end of the stream
+//            while ((value = reader.read()) != -1) {
+//                contents.append((char) value);
+//            }
+//            long timef = System.currentTimeMillis();
+//            Logger.e("TIME: " + (timef - timeB));
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//            Logger.e(e.getMessage());
+//        }
+//        return contents.toString().trim();
+//    }
 
     /***
      * @param socket

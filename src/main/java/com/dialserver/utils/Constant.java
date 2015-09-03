@@ -5,14 +5,16 @@ package com.dialserver.utils;
  */
 public interface Constant {
 
-    public enum APP_STATE{
-        running,stopped,installable
+    enum APP_STATE {
+        running, stopped, installable;
     }
 
-    ////String DIAL_MULTICAST_ADDRESS = "192.168.2.138";
     String DIAL_MULTICAST_ADDRESS = "239.255.255.250";
+    ////String DIAL_MULTICAST_ADDRESS = "224.0.0.251";      // MDNS for ChromeCast V2
 
     int DIAL_UDP_PORT = 1900;
+    //int DIAL_UDP_PORT = 5353;           // MDNS for ChromeCast V2
+
     int DIAL_LOCAL_PORT_SERVICE_DISCOVERY = 52235;
     int DIAL_LOCAL_PORT_REST_SERVICE = 12345;
 
@@ -87,7 +89,8 @@ public interface Constant {
     String APP_LAUNCH_REQUEST = "POST /apps/";
 
     String APP_LAUNCH_RESPONSE = HTTP_PROTOCOL + " 201 CREATED\r\n"
-            + "LOCATION: http://%s" + ":" + DIAL_LOCAL_PORT_REST_SERVICE + "/apps/%s/run";
+            + "LOCATION: http://%s" + ":" + DIAL_LOCAL_PORT_REST_SERVICE + "/apps/%s/run\r\n"
+            + "Access-Control-Allow-Origin: package:com.google.android.youtube\r\n" + "\r\n";
 
     String APP_SPECIFIC_INFO_RESPONSE_LINK = "<link rel=\"run\" href=\"http://%s" + ":" + DIAL_LOCAL_PORT_REST_SERVICE + "/apps/%s/run\" />";
 

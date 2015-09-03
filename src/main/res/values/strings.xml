@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">DialServerApp</string>
+    <string name="app_name">RilDialServerApp</string>
 
     <string name="hello_world">Dial Service Started\n</string>
     <string name="action_settings">Settings</string>
