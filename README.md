@@ -22,6 +22,8 @@ With DIAL
 To know more about DIAL: http://www.dial-multiscreen.org/details-for-developers
 
 # DialServer
+After a lot of search, I found no demo available for 1st screen devices, so I decided to implement DialServer for TVs having Android SDK (1st screen device).
+
 Dial Server app implemented for first screen devices (like TV) to be able to launch client' content on browser while connected with any Dial Client app on same network.
 
 Currently implemented with YouTube app as Dial Client. So with the help of DialServer, any one can see it's mobile videos on STV.
@@ -33,4 +35,4 @@ How it works:
 4. Press on cast button of Dial Client app.
 5. Dial server will launch Browser with YouTube.
 
-
+This project currently in development mode. Valuable inputs are highly appreciated.
