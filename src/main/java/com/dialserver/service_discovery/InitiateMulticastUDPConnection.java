@@ -24,42 +24,46 @@ public class InitiateMulticastUDPConnection extends Thread {
     to main memory, and not just to the CPU cache.*/
     private MulticastSocket mMulticastSocket;
     private DialUDPService mDialService;
-    private volatile boolean isDialMulticastUDPRunning =false;
+    private volatile boolean isDialMulticastUDPRunning = false;
     private InetAddress mMulticastIpAddress;
     private InetAddress mLocalIpAddress;
 
     /***
      * Create a new background thread that handles incoming Intents on the given broadcast
      * and port.
-     * <p>
+     * <p/>
      * Port no on to listen the server broadcast, It must be the same on which server broadcasting the commands.
+     *
      * @param dialService
      */
     public InitiateMulticastUDPConnection(DialUDPService dialService) {
 
-        this.mDialService = dialService;
-        try {
-            mMulticastIpAddress = InetAddress.getByName(Constant.DIAL_MULTICAST_ADDRESS);
-            mLocalIpAddress = InetAddress.getByName(mDialService.getLocalIpAddress());
-        } catch (UnknownHostException e) {
-            e.printStackTrace();
+        synchronized (InitiateMulticastUDPConnection.this) {
+            this.mDialService = dialService;
+            try {
+                mMulticastIpAddress = InetAddress.getByName(Constant.DIAL_MULTICAST_ADDRESS);
+                mLocalIpAddress = InetAddress.getByName(mDialService.getLocalIpAddress());
+            } catch (UnknownHostException e) {
+                e.printStackTrace();
+            }
         }
     }
 
     @Override
     public void run() {
-        isDialMulticastUDPRunning = true;
-
-        try {
-            createSocketAndReadDataFromUDP();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } finally {
-            stopDiscovery();
+        synchronized (InitiateMulticastUDPConnection.this) {
+            isDialMulticastUDPRunning = true;
+            try {
+                createSocketAndReadDataFromUDP();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                stopDiscovery();
+            }
         }
     }
 
-    protected void createSocket() throws IOException {
+    private void createSocket() throws IOException {
         if (mMulticastSocket == null) {
             mMulticastSocket = new MulticastSocket(Constant.DIAL_UDP_PORT);
             mMulticastSocket.joinGroup(mMulticastIpAddress);
@@ -83,7 +87,7 @@ public class InitiateMulticastUDPConnection extends Thread {
         closeSocket();
     }
 
-    protected void createSocketAndReadDataFromUDP() throws IOException {
+    private void createSocketAndReadDataFromUDP() throws IOException {
         byte[] buf;
         DatagramPacket packet;
         String message;
@@ -140,10 +144,6 @@ public class InitiateMulticastUDPConnection extends Thread {
         }
     }
 
-    public boolean isDialMulticastUDPRunning() {
-        return isDialMulticastUDPRunning;
-    }
-
     public void exitFromApp() {
         try {
             this.isDialMulticastUDPRunning = false;
@@ -155,6 +155,10 @@ public class InitiateMulticastUDPConnection extends Thread {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    public boolean isDialMulticastUDPRunning() {
+        return isDialMulticastUDPRunning;
     }
 
     public void setIsDialMulticastUDPRunning(boolean isDialMulticastUDPRunning) {

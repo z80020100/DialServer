@@ -85,12 +85,14 @@ public class InitiateDialServiceDiscovery extends Thread {
         @Override
         public void run() {
             super.run();
-            try {
-                receiveDeviceDescriptionRequest(mSocket);
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
-                mDialService.stopDiscovery(mSocket);
+            synchronized (InitiateDialServiceDiscovery.this) {
+                try {
+                    receiveDeviceDescriptionRequest(mSocket);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                    mDialService.stopDiscovery(mSocket);
+                }
             }
         }
 
@@ -124,7 +126,7 @@ public class InitiateDialServiceDiscovery extends Thread {
         /****
          * @param out
          */
-        public void sendDeviceDescriptionResponse(BufferedWriter out) {
+        private void sendDeviceDescriptionResponse(BufferedWriter out) {
             ////super.run();
             try {
                 String modelName = Build.MODEL;
@@ -141,14 +143,6 @@ public class InitiateDialServiceDiscovery extends Thread {
                 e.printStackTrace();
             }
         }
-    }
-
-    public boolean isDialServiceDiscoveryRunning() {
-        return isDialServiceDiscoveryRunning;
-    }
-
-    public void setIsDialServiceDiscoveryRunning(boolean isDialServiceDiscoveryRunning) {
-        this.isDialServiceDiscoveryRunning = isDialServiceDiscoveryRunning;
     }
 
     public void exitFromApp() {
@@ -169,5 +163,13 @@ public class InitiateDialServiceDiscovery extends Thread {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public boolean isDialServiceDiscoveryRunning() {
+        return isDialServiceDiscoveryRunning;
+    }
+
+    public void setIsDialServiceDiscoveryRunning(boolean isDialServiceDiscoveryRunning) {
+        this.isDialServiceDiscoveryRunning = isDialServiceDiscoveryRunning;
     }
 }

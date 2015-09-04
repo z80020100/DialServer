@@ -11,6 +11,7 @@ import com.orhanobut.logger.Logger;
 import com.dialserver.services.DialUDPService;
 import com.dialserver.utils.Constant;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.IOException;
@@ -20,7 +21,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 public class InitiateDialRestService extends Thread {
-
 
     /*The Java volatile keyword is used to mark a Java variable as "being stored in main memory".
     More precisely that means, that every read of a volatile variable will be read from the computer's
@@ -93,24 +93,23 @@ public class InitiateDialRestService extends Thread {
         @Override
         public void run() {
             super.run();
-            try {
-                receiveRestServiceRequest(mSocket);
-            } catch (Exception e) {
-                e.printStackTrace();
-            } finally {
-                mDialService.stopDiscovery(mSocket);
+            synchronized (InitiateDialRestService.this) {
+                try {
+                    receiveRestServiceRequest(mSocket);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                } finally {
+                    mDialService.stopDiscovery(mSocket);
+                }
             }
         }
 
         /***
          * @param out
          */
-        private void sendOtherOkResponse(BufferedWriter out, String msg) {
+        private void sendOtherOkResponse(BufferedWriter out) {
             try {
                 String ok = Constant.HTTP_PROTOCOL + " 200 OK\r\n";
-
-                String screenId = msg.substring(msg.lastIndexOf("screenId"), msg.length());
-                Logger.e("screenId: " + screenId);
 
                 mDialService.sendTCPMessage(out, ok);
                 mDialService.sendMessageToUI("send Other Ok Response:\n" + ok);
@@ -121,10 +120,9 @@ public class InitiateDialRestService extends Thread {
         }
 
         private void receiveRestServiceRequest(Socket socket) throws Exception {
+
             BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             BufferedWriter out = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
-
-            ////String msg = mDialService.readDataFromSocket(in);
 
             String msg = in.readLine();
             Logger.e("receiveRestServiceRequest:\n" + msg);
@@ -145,28 +143,45 @@ public class InitiateDialRestService extends Thread {
                 sendApplicationInformationResponse(out);
             } else if (!TextUtils.isEmpty(msg) && msg.startsWith(Constant.APP_SPECIFIC_INFO_REQUEST) &&
                     msg.endsWith(Constant.HTTP_PROTOCOL)) {
-                boolean isConnected = socket.isConnected();
 
-                final String message = msg + System.getProperty("line.separator");
-                mDialService.sendMessageToUI("App Info Request Received:\n" + message);
+                mDialService.sendMessageToUI("App Info Request Received:\n" + msg);
 
-                String appName = message.split(" ")[1];
-                appName = appName.substring(appName.lastIndexOf("/") + 1, appName.length()).trim();
+                String appName = msg.split("/")[2];
+                ////appName = appName.substring(appName.lastIndexOf("/") + 1, appName.length()).trim();
 
                 sendSpecificApplicationInformationResponse(appName, out);
             } else if (!TextUtils.isEmpty(msg) && msg.startsWith(Constant.APP_LAUNCH_REQUEST)) {
 
-                String message = msg + System.getProperty("line.separator");
+                String appName = msg.split("/")[2];
 
-                String appName = message.replace(Constant.APP_LAUNCH_REQUEST, "");
-                appName = appName.substring(0, appName.indexOf(" "));
-
+                /*String appName = msg.replace(Constant.APP_LAUNCH_REQUEST, "");
+                appName = appName.substring(0, appName.indexOf(" "));*/
+                sendApplicationLaunchResponse(appName, out);
                 ////////mDialService.sendMessageToUI("\nPlease wait while YouTube is Starting:\n" + message);
                 msg = mDialService.readDataFromSocket(in);
                 Logger.e(msg);
                 launchBrowser(appName, msg);
-                sendApplicationLaunchResponse(appName, out);
             }
+            /*else if (!TextUtils.isEmpty(msg) && msg.startsWith(Constant.APP_DELETE_REQUEST)) {
+
+                String appName = msg.split("/")[2];
+                exitFromBrowser(appName);
+                sendOtherOkResponse(out);
+            }*/
+        }
+    }
+
+    /**
+     * @param appName
+     */
+    private void exitFromBrowser(String appName) {
+        if (TextUtils.isEmpty(appName) && appName.equals(Constant.APP_NAME_YOU_TUBE)) {
+            Uri uri = Uri.parse("about:blank");
+            Intent intent = new Intent(Intent.ACTION_VIEW);
+            intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            intent.putExtra(Browser.EXTRA_APPLICATION_ID, mDialService.getPackageName());
+
+            mDialService.startActivity(intent);
         }
     }
 
@@ -231,7 +246,7 @@ public class InitiateDialRestService extends Thread {
      */
     private void launchBrowser(String appName, String msg) {
         boolean isBrowserLaunched = false;
-        String additionParams = "rel=0&autoplay=1&cc_load_policy=1";
+        String additionParams = "rel=1&autoplay=1&fs=1&vq=hd720&autohide=1";
         ///String additionParams = "";
 
         //////////////////////////mDialService.getPackageManager().getLaunchIntentForPackage("com.package.myappweb");
@@ -347,7 +362,7 @@ public class InitiateDialRestService extends Thread {
     /***
      * @param out
      */
-    public void sendApplicationInformationResponse(BufferedWriter out) {
+    private void sendApplicationInformationResponse(BufferedWriter out) {
 
         try {
             mDialService.sendTCPMessage(out, Constant.APP_INFO_RESPONSE);
@@ -361,7 +376,7 @@ public class InitiateDialRestService extends Thread {
      * @param appName
      * @param out
      */
-    public void sendSpecificApplicationInformationResponse(String appName, BufferedWriter out) {
+    private void sendSpecificApplicationInformationResponse(String appName, BufferedWriter out) {
 
         try {
             String name = appName;
@@ -387,7 +402,7 @@ public class InitiateDialRestService extends Thread {
      * @param appName
      * @param out
      */
-    public void sendApplicationLaunchResponse(String appName, BufferedWriter out) {
+    private void sendApplicationLaunchResponse(String appName, BufferedWriter out) {
 
         try {
             String localIpAddress = mDialService.getLocalIpAddress();
@@ -400,9 +415,6 @@ public class InitiateDialRestService extends Thread {
         }
     }
 
-    public boolean isDialRestServiceRunning() {
-        return isDialRestServiceRunning;
-    }
 
     public void exitFromApp() {
 
@@ -424,6 +436,10 @@ public class InitiateDialRestService extends Thread {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    public boolean isDialRestServiceRunning() {
+        return isDialRestServiceRunning;
     }
 
     public void setIsDialRestServiceRunning(boolean isDialRestServiceRunning) {

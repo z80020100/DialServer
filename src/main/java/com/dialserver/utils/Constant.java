@@ -100,6 +100,8 @@ public interface Constant {
     int SERVICE_SENT_DATA = 10;
 
     String APP_NAME_YOU_TUBE = "YouTube";
+
+    String APP_DELETE_REQUEST = "DELETE /apps/";
 }
 
 
